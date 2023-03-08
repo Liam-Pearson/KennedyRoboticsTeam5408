@@ -179,6 +179,8 @@ public class Robot extends TimedRobot {
     leftMotors = 0.2; // left motors autonmous speed.
     rightMotors = 0.2; // right motors autonomous speed.
 
+    // hello.
+
     // if less than 3 seconds has passed, drive the robot forward. This is extremely basic (and relatively useless) autonomous code.
     if (autoTimer - autoStartTime > 3000) {
       Motor1BackLeft.set(leftMotors); // setting speed of back left drive motor.
