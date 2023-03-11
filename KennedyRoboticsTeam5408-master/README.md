@@ -1,2 +1,2 @@
 # KennedyRoboticsTeam5408
-Code for the Kennedy Cache Robotics Team 5408.
+I don't know how to properly use GitHub, but this is where all our code (hopefuly) goes.
