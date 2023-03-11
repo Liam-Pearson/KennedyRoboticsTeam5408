@@ -33,6 +33,7 @@ public class Robot extends TimedRobot {
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
    */
+
   //init of motors ([MotorName] = new Talon([Port]);)
   // left side motors.
   private Talon Motor0FrontLeft = new Talon(0); //left drive motor
@@ -60,7 +61,7 @@ public class Robot extends TimedRobot {
   long autoStartTime;
 
   // solenoid object decleration. PCMConeGrabber is what grabs the game cones.
-  DoubleSolenoid PCMConeGrabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 1, 2);
+  DoubleSolenoid PCMConeGrabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 1);
 
   //init of controllers/joysticks ([Name] = new [Type]([USBPort]))
   private Joystick joystick = new Joystick(0);
@@ -70,7 +71,7 @@ public class Robot extends TimedRobot {
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
-  }
+  } // end robotInit.
 
   /**
    * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
@@ -83,9 +84,10 @@ public class Robot extends TimedRobot {
   // all pretty self explainitory.
   double joystickXAxisPos;
   double joystickYAxisPos;
-  double joystickZAxisPos;
+  double joystickZAxisPos; // for turning in place.
   // speedAxis is controlled by the scroller on the joystick.
   double joystickSpeedAxisPos;
+  double joystickPulleyDirectionPos;
 
   // drive motor control.
   double deadzoneLimit = 0.4; // sets the value that the joystick position must exceed for movement of the robot to occur.
@@ -100,14 +102,14 @@ public class Robot extends TimedRobot {
     // block in order for anything in the Command-based framework to work.
     CommandScheduler.getInstance().run();
 
-    joystickXAxisPos = joystick.getRawAxis(0); //x axis on joystick
-    joystickYAxisPos = joystick.getRawAxis(1); //y axis on joystick
-    joystickZAxisPos = joystick.getRawAxis(2); //z axis on joystick
-    joystickSpeedAxisPos = joystick.getRawAxis(3); //y axis on joystick
+    joystickXAxisPos = joystick.getRawAxis(0); // x axis on joystick
+    joystickYAxisPos = joystick.getRawAxis(1); // y axis on joystick
+    joystickZAxisPos = joystick.getRawAxis(2); // z axis on joystick
+    joystickSpeedAxisPos = joystick.getRawAxis(3); // y axis on joystick    
 
     // prints the current position of the joystick.
-    System.out.println("x-pos: " + joystickXAxisPos);
-    System.out.println("y-pos: " + joystickYAxisPos);
+    // System.out.println("x-pos: " + joystickXAxisPos);
+    // System.out.println("y-pos: " + joystickYAxisPos);
 
     // deadzones.
     if (Math.abs(joystickXAxisPos) < deadzoneLimit || Math.abs(joystickXAxisPos) < deadzoneLimit*-1 ) {
@@ -123,7 +125,7 @@ public class Robot extends TimedRobot {
     speed = ((Math.abs(joystickSpeedAxisPos)-1)*4.9); // sets the speed of the robot by dividing the motor speed by the speed value.
 
     // prints robot speed information.
-    System.out.println("Speed input: " + joystickSpeedAxisPos + "\n Re-calculated speed input: " + speed);
+    // System.out.println("Speed input: " + joystickSpeedAxisPos + "\n Re-calculated speed input: " + speed);
 
     // LEGACY: setting speed of left and right motors.
     leftMotors = (joystickYAxisPos+joystickXAxisPos+joystickZAxisPos+joystickSpeedAxisPos)/speed; // left motors are postive values. The value is then divided to set speed.
@@ -138,10 +140,18 @@ public class Robot extends TimedRobot {
     // arcade drive. Not sure how this works.
     // driveCG.arcadeDrive(joystickYAxisPos, joystickXAxisPos);
 
-    // controls the speed of the pulley system when button 1 (front trigger) is pressed.
-    if (joystick.getRawButtonPressed(1)) {
-      Motor4Pulley.set(joystickSpeedAxisPos);
+    // controls the speed of the pulley system
+    if(joystick.getRawButton(1))
+    {
+      Motor4Pulley.set(0.1);
     } // end if.
+    else if(joystick.getRawButton(2))
+    {
+      Motor4Pulley.set(-0.13);
+    } // end else if.
+    else{
+      Motor4Pulley.set(0);
+    } // end else.
 
     // Initialize the DoubleSolenoid so it knows where to start.  Not required for single solenoids.
     PCMConeGrabber.set(DoubleSolenoid.Value.kReverse);
