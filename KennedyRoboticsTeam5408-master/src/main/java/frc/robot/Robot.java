@@ -8,9 +8,11 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
+import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
+import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
@@ -62,6 +64,7 @@ public class Robot extends TimedRobot {
 
   // solenoid object decleration. PCMConeGrabber is what grabs the game cones.
   DoubleSolenoid PCMConeGrabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 1);
+
 
   //init of controllers/joysticks ([Name] = new [Type]([USBPort]))
   private Joystick joystick = new Joystick(0);
@@ -143,11 +146,11 @@ public class Robot extends TimedRobot {
     // controls the speed of the pulley system
     if(joystick.getRawButton(1))
     {
-      Motor4Pulley.set(0.1);
+      Motor4Pulley.set(0.5);
     } // end if.
     else if(joystick.getRawButton(2))
     {
-      Motor4Pulley.set(-0.13);
+      Motor4Pulley.set(-0.3);
     } // end else if.
     else{
       Motor4Pulley.set(0);
@@ -157,7 +160,7 @@ public class Robot extends TimedRobot {
     PCMConeGrabber.set(DoubleSolenoid.Value.kReverse);
 
     // if button two is pressed, toggle the piston.
-    if (joystick.getRawButtonPressed(2)) {
+    if (joystick.getRawButtonPressed(3)) {
       PCMConeGrabber.toggle();
     } // end if.
   } // end robotPeriodic.
