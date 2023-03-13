@@ -48,13 +48,6 @@ public class Robot extends TimedRobot {
   // telescoping arm motor.
   private Talon Motor5Telescope = new Talon(5); // telescoping arm motor.
 
-  // motor control groups for left and side sides of the robot.
-  MotorControllerGroup leftMotorCG = new MotorControllerGroup(Motor0FrontLeft, Motor1BackLeft);
-  MotorControllerGroup rightMotorCG = new MotorControllerGroup(Motor2FrontRight, Motor3BackRight);
-
-  // master differental drive group for the robot.
-  DifferentialDrive driveCG = new DifferentialDrive(leftMotorCG, rightMotorCG);
-
   // variables for drive motors (non-differental, hard coded solution version).
   double leftMotors;
   double rightMotors;
@@ -63,7 +56,7 @@ public class Robot extends TimedRobot {
   long autoStartTime;
 
   // solenoid object decleration. PCMConeGrabber is what grabs the game cones.
-  DoubleSolenoid PCMConeGrabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 0, 1);
+  DoubleSolenoid PCMConeGrabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 1, 2);
 
 
   //init of controllers/joysticks ([Name] = new [Type]([USBPort]))
@@ -96,6 +89,9 @@ public class Robot extends TimedRobot {
   double deadzoneLimit = 0.4; // sets the value that the joystick position must exceed for movement of the robot to occur.
   double speed = 0;
   boolean pulleyMotorToggle = false;
+  boolean clawToggle = false;
+  
+  double i = 0;
 
   @Override
   public void robotPeriodic() {
@@ -111,8 +107,8 @@ public class Robot extends TimedRobot {
     joystickSpeedAxisPos = joystick.getRawAxis(3); // y axis on joystick    
 
     // prints the current position of the joystick.
-    // System.out.println("x-pos: " + joystickXAxisPos);
-    // System.out.println("y-pos: " + joystickYAxisPos);
+    System.out.println("x-pos: " + joystickXAxisPos);
+    System.out.println("y-pos: " + joystickYAxisPos);
 
     // deadzones.
     if (Math.abs(joystickXAxisPos) < deadzoneLimit || Math.abs(joystickXAxisPos) < deadzoneLimit*-1 ) {
@@ -130,27 +126,27 @@ public class Robot extends TimedRobot {
     // prints robot speed information.
     // System.out.println("Speed input: " + joystickSpeedAxisPos + "\n Re-calculated speed input: " + speed);
 
-    // LEGACY: setting speed of left and right motors.
-    leftMotors = (joystickYAxisPos+joystickXAxisPos+joystickZAxisPos+joystickSpeedAxisPos)/speed; // left motors are postive values. The value is then divided to set speed.
+    // setting speed of left and right motors.
+    leftMotors = (joystickYAxisPos+joystickXAxisPos+joystickZAxisPos)/speed; // left motors are postive values. The value is then divided to set speed.
     rightMotors = (joystickYAxisPos-joystickXAxisPos-joystickZAxisPos-joystickSpeedAxisPos)/speed; // right motors are negative values. The value is then divided to set speed.
 
-    // LEGACY:motors are inverted depending on the side. To move forward, left motors must be positive values, while right side motors must be set to negative values, or vice-versa.
-    Motor1BackLeft.set(leftMotors); // setting speed of back left drive motor.
-    Motor3BackRight.set(rightMotors*-1); // setting speed of back right motor.
-    Motor0FrontLeft.set(leftMotors); // setting speed of front left drive motor.
-    Motor2FrontRight.set(rightMotors*-1); // setting speed of front right motor.
-
-    // arcade drive. Not sure how this works.
-    // driveCG.arcadeDrive(joystickYAxisPos, joystickXAxisPos);
+    // motors are inverted depending on the side. To move forward, left motors must be positive values, while right side motors must be set to negative values, or vice-versa.
+    Motor0FrontLeft.set(leftMotors*-1); // setting speed of front left drive motor.
+    Motor1BackLeft.set(leftMotors*-1); // setting speed of back left drive motor.
+    Motor2FrontRight.set(rightMotors); // setting speed of front right motor.
+    Motor3BackRight.set(rightMotors); // setting speed of back right motor.
 
     // controls the speed of the pulley system
-    if(joystick.getRawButton(1))
+    if(joystick.getRawButton(1) && i < 115)
     {
-      Motor4Pulley.set(0.5);
+      Motor4Pulley.set(0.45);
+      i = i + 1;
+      // motorPullLengthIndex = motorPullLengthIndex + 0.01;
     } // end if.
     else if(joystick.getRawButton(2))
     {
-      Motor4Pulley.set(-0.3);
+      Motor4Pulley.set(-0.15);
+      i = 0;
     } // end else if.
     else{
       Motor4Pulley.set(0);
@@ -159,9 +155,23 @@ public class Robot extends TimedRobot {
     // Initialize the DoubleSolenoid so it knows where to start.  Not required for single solenoids.
     PCMConeGrabber.set(DoubleSolenoid.Value.kReverse);
 
-    // if button two is pressed, toggle the piston.
-    if (joystick.getRawButtonPressed(3)) {
-      PCMConeGrabber.toggle();
+    System.out.println("index: " + i);
+
+    // if button three is pressed, clawToggle will be set to true, thus closing the claw inward.
+    if (joystick.getRawButton(3)) {
+      clawToggle = true;
+    } // end if.
+
+    // if button 4 is pressed, clawToggle will be set to false.
+    if(joystick.getRawButton(4))
+    {
+      clawToggle = false;
+    } // end if.
+
+    // checks the condition of clawToggle. If clawToggle is true, close the claw.
+    if(clawToggle == true)
+    {
+      PCMConeGrabber.set(Value.kForward); // sets the solenoid to forward.
     } // end if.
   } // end robotPeriodic.
 
