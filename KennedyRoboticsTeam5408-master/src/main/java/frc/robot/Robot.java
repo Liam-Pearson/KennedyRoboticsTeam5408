@@ -8,6 +8,9 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.AnalogGyro;
+import edu.wpi.first.wpilibj.BuiltInAccelerometer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.Joystick;
@@ -15,9 +18,11 @@ import edu.wpi.first.wpilibj.PneumaticsModuleType;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.interfaces.Accelerometer;
 import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.motorcontrol.Talon;
 import edu.wpi.first.cameraserver.*;
+import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /**
@@ -45,22 +50,30 @@ public class Robot extends TimedRobot {
   private Talon Motor3BackRight = new Talon(3); //right drive motor
   // pulley system motor.
   private Talon Motor4Pulley = new Talon(4); // pulley system drive motor.
-  // telescoping arm motor.
-  private Talon Motor5TelescopeLeft = new Talon(5); // left telescoping arm motor.
-  private Talon Motor6TelescopeRight = new Talon(6); // right telescoping arm motor.
+  // telescoping arm motors.
+  private Talon Motor5Telescope = new Talon(5); // left telescoping arm motor.
 
   // variables for drive motors (non-differental, hard coded solution version).
   double leftMotors;
   double rightMotors;
 
   // start time for autonmous.
-  long autoStartTime;
+  long time = System.currentTimeMillis();
 
   // solenoid object decleration. PCMConeGrabber is what grabs the game cones.
   DoubleSolenoid PCMConeGrabber = new DoubleSolenoid(PneumaticsModuleType.CTREPCM, 1, 2);
 
+  // built in RoboRio Accelerometer.
+  Accelerometer accelerometer = new BuiltInAccelerometer();
+
+  // gryoscope.
+  AnalogGyro gyro = new AnalogGyro(0);
+
   //init of controllers/joysticks ([Name] = new [Type]([USBPort]))
   private Joystick joystick = new Joystick(0);
+
+  // turns on functions which, unless the boolean is set to true, would otherwise not run.
+  boolean testMode = false;
 
   @Override
   public void robotInit() {
@@ -70,20 +83,20 @@ public class Robot extends TimedRobot {
 
     CameraServer.startAutomaticCapture(0); // front camera.
     CameraServer.startAutomaticCapture(1); // top camera.
-  } // end robotInit.
 
-  /**
-   * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
-   * that you want ran during disabled, autonomous, teleoperated and test.
-   *
-   * <p>This runs after the mode specific periodic functions, but before LiveWindow and
-   * SmartDashboard integrated updating.
-   */
+    // this is poorly written code but it works. It moves the robots arm to the proper position to start the game. Only runs if the boolean 'testMode' is set to true.
+    if(testMode == true){
+      for(int i = 0; i < 250; i++){
+        Motor4Pulley.set(0.8);
+      } // end for.
+    } // end if
+
+  } // end robotInit.
 
   // all pretty self explainitory.
   double joystickXAxisPos;
   double joystickYAxisPos;
-  double joystickZAxisPos; // for turning in place.
+  double joystickZAxisPos; // for turning in place. Currently not in use.
   // speedAxis is controlled by the scroller on the joystick.
   double joystickSpeedAxisPos;
 
@@ -94,6 +107,22 @@ public class Robot extends TimedRobot {
   
   double indexOfArmHeight = 0; // position of arm.
 
+  // robot in half-speed.
+  int speedSlowOnOff = 0;
+
+  // dev mode.
+  boolean devMode = true;
+
+  // emergency stop condition.
+  boolean emergencyStop = false;
+
+   /**
+   * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
+   * that you want ran during disabled, autonomous, teleoperated and test.
+   *
+   * <p>This runs after the mode specific periodic functions, but before LiveWindow and
+   * SmartDashboard integrated updating.
+   */
   @Override
   public void robotPeriodic() {
     // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
@@ -102,14 +131,27 @@ public class Robot extends TimedRobot {
     // block in order for anything in the Command-based framework to work.
     CommandScheduler.getInstance().run();
 
+    if(emergencyStop == false){
+      controllerDrive(); // allows the robot to drive.
+      armLifter(); // allows the arm of the robot to lift.
+      armExtender(); // alows the arm to extend.
+      clawOperations(); // allows the claw to open and shut.
+      robotPosition(); // allows the robot to calculate its position.
+    } // end if.
+    
+    // Initialize the DoubleSolenoid so it knows where to start.  Not required for single solenoids.
+    // PCMConeGrabber.set(DoubleSolenoid.Value.kReverse);
+  } // end robotPeriodic.
+
+  public void controllerDrive(){
     joystickXAxisPos = joystick.getRawAxis(0); // x axis on joystick
     joystickYAxisPos = joystick.getRawAxis(1); // y axis on joystick
     joystickZAxisPos = joystick.getRawAxis(2); // z axis on joystick
     joystickSpeedAxisPos = joystick.getRawAxis(3); // y axis on joystick    
 
     // prints the current position of the joystick.
-    System.out.println("x-pos: " + joystickXAxisPos);
-    System.out.println("y-pos: " + joystickYAxisPos);
+    System.out.println("X-POS: " + joystickXAxisPos);
+    System.out.println("Y-POS: " + joystickYAxisPos);
 
     // deadzones.
     if (Math.abs(joystickXAxisPos) < deadzoneLimit) {
@@ -122,7 +164,21 @@ public class Robot extends TimedRobot {
       joystickYAxisPos = 0; // sets value of joystickYAxisPos to 0 if joystick value is under the deadzoneLimit.
     } // end if.
 
-    speed = ((Math.abs(joystickSpeedAxisPos)-1)*4.9); // sets the speed of the robot by dividing the motor speed by the speed value.
+    // if button 7 is pressed, the robot moves slower. If button 7 is pressed again, the robot returns to regular speed.
+    if(joystick.getRawButton(7)){
+      speedSlowOnOff = speedSlowOnOff + 1;
+      if(speedSlowOnOff > 1){
+        speedSlowOnOff = 0;
+      } // end if.
+    } // end if.
+
+    // if the value of speedSlowOnOff is 1, the robot moves at half speed. If the value of speedSlowOnOff is 0, the robot moves at regular speed.
+    if(speedSlowOnOff == 1){
+      speed = ((Math.abs(joystickSpeedAxisPos)-1)*8.9); // sets the speed of the robot by dividing the motor speed by the speed value.
+    } // end if.
+    else if(speedSlowOnOff == 0){
+      speed = ((Math.abs(joystickSpeedAxisPos)-1)*8.9); // sets the speed of the robot by dividing the motor speed by the speed value.
+    } // end else if.
 
     // prints robot speed information.
     // System.out.println("Speed input: " + joystickSpeedAxisPos + "\n Re-calculated speed input: " + speed);
@@ -135,47 +191,128 @@ public class Robot extends TimedRobot {
     System.out.println("RIGHT MOTORS: " + rightMotors);
 
     // motors are inverted depending on the side. To move forward, left motors must be positive values, while right side motors must be set to negative values, or vice-versa.
+    // motors are totally weird and wrong due to wiring and positioning but they work.
     Motor0FrontLeft.set(leftMotors*-1); // setting speed of front left drive motor.
     Motor1BackLeft.set(leftMotors); // setting speed of back left drive motor.
-     Motor2FrontRight.set(rightMotors*-1); // setting speed of front right motor.
+    Motor2FrontRight.set(rightMotors*-1); // setting speed of front right motor.
     Motor3BackRight.set(rightMotors*-1); // setting speed of back right motor.
+    
+    // robot motor diagram.
+    // Front [N]
+    // 0----2
+    // |    |
+    // |    |
+    // 1----3
+  } // end controllerDrive.
 
-    // controls the speed of the pulley system
-    if(joystick.getRawButton(1))
-    {
-      Motor4Pulley.set(0.6);
+  public void armLifter(){
+    // controls the speed of the arm pulley system
+    if(joystick.getRawButton(1)){
+      Motor4Pulley.set(0.8);
+      System.out.println("ARM MOVING UP");
       // motorPullLengthIndex = motorPullLengthIndex + 0.01;
     } // end if.
-    else if(joystick.getRawButton(2))
-    {
-      Motor4Pulley.set(-0.15);
+    else if(joystick.getRawButton(2)){
+      Motor4Pulley.set(-0.15); // retract arm.
+      System.out.println("ARM MOVING DOWN");
     } // end else if.
     else{
-      Motor4Pulley.set(0);
+      Motor4Pulley.set(0.2);
     } // end else.
+  } // end armExtender.
 
-    // Initialize the DoubleSolenoid so it knows where to start.  Not required for single solenoids.
-    PCMConeGrabber.set(DoubleSolenoid.Value.kReverse);
+  public void armExtender(){
+    // controls the speed of the telescoping arm pulley system.
+    if(joystick.getRawButton(5)){
+      Motor5Telescope.set(-0.6);
+      System.out.println("TELESCOPING ARM OUT");
+    } // end if.
+    else if(joystick.getRawButton(6)){
+      Motor5Telescope.set(0.2); // retract telescoping arm.
+      System.out.println("TELESCOPING ARM IN");
+    } // end else if.
+    else{
+      Motor5Telescope.set(-0.2);
+    } // end else.
+  } // end armExtender.
 
-    System.out.println("index: " + indexOfArmHeight);
-
+  public void clawOperations(){
     // if button three is pressed, clawToggle will be set to true, thus closing the claw inward.
     if (joystick.getRawButton(3)) {
       clawToggle = true;
     } // end if.
 
     // if button 4 is pressed, clawToggle will be set to false.
-    if(joystick.getRawButton(4))
-    {
+    if(joystick.getRawButton(4)) {
       clawToggle = false;
     } // end if.
 
     // checks the condition of clawToggle. If clawToggle is true, close the claw.
-    if(clawToggle == true)
-    {
+    if(clawToggle == true) {
       PCMConeGrabber.set(Value.kForward); // sets the solenoid to forward.
     } // end if.
-  } // end robotPeriodic.
+  } // end clawOperations
+
+  // accerlation variables.
+  // previously measured acceleration in the loop.
+  double prevXAccel = 0;
+  double prevYAccel = 0;
+  // current acceleration in the loop.
+  double xAccel = 0;
+  double yAccel = 0;
+  // x and y jerk that occurs during the Loop timing.
+  double xJerk = 0;
+  double yJerk = 0;
+  // velocity variables.
+  double xVelocity = 0;
+  double yVelocity = 0;
+  // start and finish times of calculations.
+  long startTimeOfPosition = 0;
+  long endTimeOfPosition = 0;
+  long changeInTimeForPosition = 0;
+  // x and y position of the robot.
+  double xPositionOfRobot = 0;
+  double yPositionOfRobot = 0;
+
+  // filter to increase the accuracy of accelerometer data.
+  LinearFilter AccelFilter = LinearFilter.movingAverage(10);
+
+  public void robotPosition(){
+    // documentation can be found at https://docs.wpilib.org/en/stable/docs/software/hardware-apis/sensors/accelerometers-software.html#builtinaccelerometer.
+
+    // gets the start time of the calculation.
+    startTimeOfPosition = System.currentTimeMillis();
+
+    // gets the current acceleration in the x and y directions.
+    xAccel = AccelFilter.calculate(accelerometer.getX());
+    yAccel = AccelFilter.calculate(accelerometer.getY());
+
+    // calcualtes the jerk of the robot. Not used for anything.
+    xJerk = (xAccel - prevXAccel)/.02;
+    yJerk = (yAccel - prevYAccel)/.02;
+
+    // sets the previous acceleration valeus to the current acceleration values.
+    prevXAccel = xAccel;
+    prevYAccel = yAccel;
+
+    // gets the end time of the calculation.
+    endTimeOfPosition = System.currentTimeMillis();
+
+    // calculates the change in time during the calculations for position.
+    changeInTimeForPosition = endTimeOfPosition - startTimeOfPosition;
+
+    // calculates the velocity of the robot in each axis.
+    xVelocity = (xAccel/changeInTimeForPosition);
+    yVelocity = (yAccel/changeInTimeForPosition);
+
+    // calculates position using kinematics.
+    xPositionOfRobot = ((xVelocity*changeInTimeForPosition)+(0.5*xAccel*(changeInTimeForPosition*changeInTimeForPosition)));
+    yPositionOfRobot = ((yVelocity*changeInTimeForPosition)+(0.5*yAccel*(changeInTimeForPosition*changeInTimeForPosition)));
+
+    // prints position value and gyro value.
+    System.out.println("X-POSITION: " + xPositionOfRobot + " Y-POSITION: " + yPositionOfRobot);
+    System.out.println("GYRO: " + gyro.getAngle());
+  } // end robotPosition.
 
   /** This function is called once each time the robot enters Disabled mode. */
   @Override
@@ -188,7 +325,7 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousInit() {
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
-    autoStartTime = System.currentTimeMillis();
+    time = System.currentTimeMillis();
 
     // schedule the autonomous command (example)
     if (m_autonomousCommand != null) {
@@ -204,14 +341,19 @@ public class Robot extends TimedRobot {
     leftMotors = 0.2; // left motors autonmous speed.
     rightMotors = 0.2; // right motors autonomous speed.
 
-    // hello.
-
     // if less than 3 seconds has passed, drive the robot forward. This is extremely basic (and relatively useless) autonomous code.
-    if (autoTimer - autoStartTime > 3000) {
+    if (autoTimer - time < 3000) {
+      Motor0FrontLeft.set(leftMotors*-1); // setting speed of front left drive motor.
       Motor1BackLeft.set(leftMotors); // setting speed of back left drive motor.
-      Motor3BackRight.set(rightMotors*-1); // setting speed of back right motor.
-      Motor0FrontLeft.set(leftMotors); // setting speed of front left drive motor.
       Motor2FrontRight.set(rightMotors*-1); // setting speed of front right motor.
+      Motor3BackRight.set(rightMotors*-1); // setting speed of back right motor.
+
+      // robot motor diagram.
+      // Front [N]
+      // 0----2
+      // |    |
+      // |    |
+      // 1----3
 
       // arcade drive. Not sure how this works.
       // driveCG.arcadeDrive(0.2, 0.2);
