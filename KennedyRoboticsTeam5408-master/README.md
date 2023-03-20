@@ -17,6 +17,8 @@ B1 (front trigger) - Pulls arm upwards by rotating the pulley North
 B2 - Lowers the arm by rotating the pulley South
 B3 - Closes the claw
 B4 - Opens the claw
+B5 - Extends the telescoping arm
+B6 - Retracts (reduces tension on wire, allowing it to fall back in place) the telescoping arm.
 
 Operating Procedures:
 1 - Open FRC Driver Station
