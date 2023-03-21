@@ -19,6 +19,8 @@ B3 - Closes the claw
 B4 - Opens the claw
 B5 - Extends the telescoping arm
 B6 - Retracts (reduces tension on wire, allowing it to fall back in place) the telescoping arm.
+B11 - Activates EMERGENCY STOP! Stops all robot operations from proceeding.
+B12 - De-activates EMERGENCY STOP! Allows all robot operations to proceed.
 
 Operating Procedures:
 1 - Open FRC Driver Station
