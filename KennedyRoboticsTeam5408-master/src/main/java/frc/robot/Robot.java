@@ -381,13 +381,40 @@ public class Robot extends TimedRobot {
 
     // if less than 3 seconds has passed, drive the robot forward. This is extremely
     // basic (and relatively useless) autonomous code.
-    if (timeOfAutonomous < 2000) {
+    if (timeOfAutonomous < 1500) {
       System.out.println("TIME OF AUTONOMOUS = " + timeOfAutonomous + ".");
 
-      // Motor0FrontLeft.set(0.4 * -1); // setting speed of front left drive motor.
-      // Motor1BackLeft.set(0.4); // setting speed of back left drive motor.
-      // Motor2FrontRight.set(0.4*-1); // setting speed of front right motor.
-      // Motor3BackRight.set(0.4*-1); // setting speed of back right motor.
+      Motor0FrontLeft.set(0.55 * -1); // setting speed of front left drive motor.
+      Motor1BackLeft.set(0.55); // setting speed of back left drive motor.
+      Motor2FrontRight.set(0.55*-1); // setting speed of front right motor.
+      Motor3BackRight.set(0.55*-1); // setting speed of back right motor.
+
+      System.out.println("AUTONOMOUS RUNNING AND MOVING FORWARDS.");
+
+      System.out.println("GYRO: " + gyro.getAngle());
+
+      // courseCorrectionAutonomous(10,10);
+
+      // robot motor diagram.
+      // Front [N]
+      // 0----2
+      // | |
+      // | |
+      // 1----3
+
+      // arcade drive. Not sure how this works.
+      // driveCG.arcadeDrive(0.2, 0.2);
+
+      // PCMConeGrabber.set(DoubleSolenoid.Value.kReverse); // sets the solenoid to reverse`. Drops the cube on the ground.
+
+    } // end if.
+    else if (timeOfAutonomous < 2500) {
+      System.out.println("TIME OF AUTONOMOUS = " + timeOfAutonomous + ".");
+
+      Motor0FrontLeft.set(0.3 * -1); // setting speed of front left drive motor.
+      Motor1BackLeft.set(0.3); // setting speed of back left drive motor.
+      Motor2FrontRight.set(0.3*-1); // setting speed of front right motor.
+      Motor3BackRight.set(0.3*-1); // setting speed of back right motor.
 
       System.out.println("AUTONOMOUS RUNNING AND MOVING FORWARDS.");
 
@@ -413,7 +440,7 @@ public class Robot extends TimedRobot {
       Motor1BackLeft.set(0); // setting speed of back left drive motor.
       Motor2FrontRight.set(0); // setting speed of front right motor.
       Motor3BackRight.set(0); // setting speed of back right motor.
-    }
+    } // end else.
 
   } // end autonomousPeriodic.
 
@@ -462,7 +489,7 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     if(emergencyStop == false){
       controllerDrive(0.2, 8.9); // allows the robot to drive.
-      armLifter(0.55, 0.15, 0.1); // allows the arm of the robot to lift.
+      armLifter(0.65, 0.15, 0.1); // allows the arm of the robot to lift.
       armExtender(0.6, 0.15, 0.1); // alows the arm to extend.
       clawOperations(); // allows the claw to open and shut.
       robotPosition(); // allows the robot to calculate its position.
