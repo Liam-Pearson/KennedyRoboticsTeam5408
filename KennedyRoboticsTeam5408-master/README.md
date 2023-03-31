@@ -6,13 +6,13 @@ Directions:
 [S] - Rear of Robot (Battery is in the rear)
 [W] - Left of Robot
 
-Axis Mapping:
+Axis Mapping (Joystick):
 [A1] - X-Axis
 [A2] - Y-Axis
 [A3] - Z-Axis
 [A4] - SpeedAxis
 
-Button Mapping:
+Button Mapping (Joystick):
 [B1] (front trigger) - Pulls arm upwards by rotating the pulley North
 [B2] - Lowers the arm by rotating the pulley South
 [B3] - Closes the claw
@@ -21,6 +21,18 @@ Button Mapping:
 [B6] - Retracts (reduces tension on wire, allowing it to fall back in place) the telescoping arm.
 [B11] - Emergency Stop!
 [B12] - Exit Emergency Stop!
+
+Axis Mapping (Controller):
+[LeftJoystick] = Y-axis
+[RightJoystick] = X-Axis
+
+Butoon Mapping (Controller):
+[RightTrigger] = Arm up
+[LeftTrigger] = Arm down
+[RightBumper] = Arm out
+[LeftBumper] = Arm in
+[BButton] = Claw open
+[XButton] = Claw close
 
 Operating Procedures:
 [1] - Open FRC Driver Station
