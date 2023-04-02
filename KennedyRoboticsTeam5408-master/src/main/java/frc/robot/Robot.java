@@ -4,31 +4,20 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
-import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
-import edu.wpi.first.wpilibj.SPI;
-import edu.wpi.first.wpilibj.AnalogGyro;
-import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.BuiltInAccelerometer;
-import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.PneumaticsModuleType;
-import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Solenoid;
-import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.interfaces.Accelerometer;
-import edu.wpi.first.wpilibj.motorcontrol.MotorControllerGroup;
 import edu.wpi.first.wpilibj.motorcontrol.Talon;
-import edu.wpi.first.cameraserver.*;
-import edu.wpi.first.math.filter.LinearFilter;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -131,7 +120,7 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     if(emergencyStop == false){
       controllerDrive(0.2, 8.9, false); // allows the robot to drive.
-      armLifter(0.7, 0.3, 0.1, false); // allows the arm of the robot to lift.
+      armLifter(0.7, 0.5, 0.1, false); // allows the arm of the robot to lift.
       armExtender(0.6, 0.15, 0.1, false); // alows the arm to extend.
       clawOperations(false); // allows the claw to open and shut.
     } // end if.
@@ -174,6 +163,7 @@ public class Robot extends TimedRobot {
   // all pretty self explainitory.
 double joystickXAxisPos;
 double joystickYAxisPos;
+double joystickZAxisPos; 
 
 // variables for drive motors (non-differental, hard coded solution version).
 double leftMotors;
@@ -190,6 +180,7 @@ public void controllerDrive(double deadzone, double speedCoefficent, boolean con
   if(controllerDriveOn == false){
   joystickXAxisPos = joystick.getRawAxis(0)/2; // x axis on joystick
   joystickYAxisPos = joystick.getRawAxis(1); // y axis on joystick
+  joystickZAxisPos = joystick.getRawAxis(2);
   } // end if.
   else{
   joystickXAxisPos = xboxControllerFRC.getLeftX(); // x axis on joystick
@@ -212,8 +203,8 @@ public void controllerDrive(double deadzone, double speedCoefficent, boolean con
   // ==========================================================================================================================
 
   // setting speed of left and right motors.
-  leftMotors = (joystickYAxisPos - joystickXAxisPos); // left motors are postive values. The value is then divided to set speed.
-  rightMotors = (joystickYAxisPos + joystickXAxisPos); // right motors are negative values. The value is then divided to set speed.
+  leftMotors = (joystickYAxisPos - joystickXAxisPos - joystickZAxisPos); // left motors are postive values. The value is then divided to set speed.
+  rightMotors = (joystickYAxisPos + joystickXAxisPos + joystickZAxisPos); // right motors are negative values. The value is then divided to set speed.
 
   // motors are inverted depending on the side. To move forward, left motors must
   // be positive values, while right side motors must be set to negative values,
@@ -432,32 +423,58 @@ public void autonomousScoreCube(){
 
   timeOfAutonomous = autoTimer - masterStartTime;
 
-  if(timeOfAutonomous < 1400){
+  if(timeOfAutonomous < 1300){
     PCMConeGrabber.set(DoubleSolenoid.Value.kForward); // sets the solenoid to forward. Opens claw.
     Motor4Pulley.set(0.3); // lower arm.
-    System.out.println("1");
+    System.out.println("LOWERING AUTO ARM.");
   } // end if.
-  else if(timeOfAutonomous < 3600){
+  else if(timeOfAutonomous < 3700){
     Motor5Telescope.set(0.5); // extend out arm.
     Motor4Pulley.set(-0.2); // lock posiiton.
-    System.out.println("2");
+    System.out.println("EXTENDING AUTO ARM.");
   } // end else if.
-  else if(timeOfAutonomous < 4400){
+  else if(timeOfAutonomous < 7300){
     PCMConeGrabber.set(DoubleSolenoid.Value.kReverse); // sets the solenoid to forward. Opens claw.
     Motor5Telescope.set(0.2); // lock position.
     Motor4Pulley.set(-0.2); // lock position.
-    System.out.println("3");
+    System.out.println("OPENING AUTO CLAW.");
   } // end else if.
-  else if(timeOfAutonomous < 6400){ // drives the robot in reverse.
+  else if(timeOfAutonomous < 7500){
     Motor5Telescope.set(-0.2); // lock position.
     Motor4Pulley.set(-0.6); // lock position.
-    System.out.println("4");
+  } // SLAM UP
+  else if(timeOfAutonomous < 7700){
+    Motor5Telescope.set(-0.2); // lock position.
+    Motor4Pulley.set(0.6); // lock position.
+  } // SLAM DOWN
+  else if(timeOfAutonomous < 8200){
+    Motor4Pulley.set(-0.6); // lock position.
+    Motor5Telescope.set(0.3); // lock position.
+  }
+  else if(timeOfAutonomous < 10500){
+    Motor5Telescope.set(-0.3); // lock position.
+    Motor4Pulley.set(-0.2); // lock position.
+  }
+  else if(timeOfAutonomous < 12500){ // drives the robot in reverse.
+    System.out.println("RETRACTING AUTO ARMS AND REVERSING.");
 
-    Motor0FrontLeft.set(0.5 ); // setting speed of front left drive motor.
-    Motor1BackLeft.set(-0.5); // setting speed of back left drive motor.
-    Motor2FrontRight.set(0.5); // setting speed of front right motor.
-    Motor3BackRight.set(0.5); // setting speed of back right motor.
+    Motor0FrontLeft.set(0.6 ); // setting speed of front left drive motor.
+    Motor1BackLeft.set(-0.6); // setting speed of back left drive motor.
+    Motor2FrontRight.set(0.85); // setting speed of front right motor.
+    Motor3BackRight.set(0.85); // setting speed of back right motor.
+    Motor5Telescope.set(0.2); // lock position.
+    Motor4Pulley.set(-0.2); // lock position.
   } // end else if.
+  else if(timeOfAutonomous < 13700){
+    System.out.println("TURNING.");
+
+    Motor0FrontLeft.set(0.6 ); // setting speed of front left drive motor.
+    Motor1BackLeft.set(-0.6); // setting speed of back left drive motor.
+    Motor2FrontRight.set(-0.7); // setting speed of front right motor.
+    Motor3BackRight.set(-0.7); // setting speed of back right motor.
+    Motor5Telescope.set(0.2); // lock position.
+    Motor4Pulley.set(-0.2); // lock position.
+  }
   else{
     System.out.println("5");
     Motor0FrontLeft.set(0); // setting speed of front left drive motor.
